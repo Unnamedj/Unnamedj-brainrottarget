@@ -1,256 +1,163 @@
--- 💀 Brainrot Pro Sniper by JOSZMSR (modificado por ChatGPT)
--- Mejorado: sigue haciendo hop
+-- Full Pet Sniper Ultra Rápido + ESP + Webhooks + Turbo Server Hop Prioridad 3-5
 
---==🎯 Pets Objetivo==--
+--🎯 Objetivos
 getgenv().WebhookATargets = {
-    "Chicleteira Bicicleteira",
-    "Dragon Cannelloni",
-    "La Grande Combinasion",
-    "Garama and Madundung",
-    "Nuclearo Dinossauro",
-    "Los Combinasionas"
+    "Chicleteira Bicicleteira", "Dragon Cannelloni", "La Grande Combinasion",
+    "Garama and Madundung", "Nuclearo Dinossauro"
 }
-
 getgenv().WebhookBTargets = {
-    "Los Tralaleritos",
-    "Graipuss Medussi",
-    "Sammyni Spyderini",
-    "Torrtuginni Dragonfrutini",
-    "Pot Hotspot",
-    "Las Tralaleritas"
+    "Ballerino Lololo", "Los Crocodillitos", "Piccione Macchina", "Trenostruzzo Turbo 3000",
+    "Trigoligre Frutonni", "Orcalero Orcala", "Coco Elefanto", "Girafa Celestre",
+    "Gattianino Nyanino", "Matteo", "Tralalero Tralala", "Espresso Signora",
+    "Odin Din Din Dun", "Statutino Libertino", "Trippi Troppi Troppa Trippa"
+}
+getgenv().WebhookCTargets = {
+    "Las Vaquitas Saturnitas", "Pot Hotspot", "Tortuginni Dragonfruitini",
+    "Graipuss Medussi", "Las Tralaleritas", "Los tralaleritos",
+    "Chimpanzini Spiderini", "La Vacca Saturno Saturnita"
 }
 
---==📊 Brainrot exacto por Pet==--
-local petBrainrot = {
-    ["Chicleteira Bicicleteira"] = "3,500,000",
-    ["Dragon Cannelloni"] = "15,400,000",
-    ["La Grande Combinasion"] = "10,000,000",
-    ["Garama and Madundung"] = "50,000,000",
-    ["Nuclearo Dinossauro"] = "15,000,000",
-    ["Los Tralaleritos"] = "500,000",
-    ["Graipuss Medussi"] = "1,000,000",
-    ["Sammyni Spyderini"] = "350,000",
-    ["Torrtuginni Dragonfrutini"] = "400,000",
-    ["Pot Hotspot"] = "2,500,000",
-    ["Las Tralaleritas"] = "650,000",
-    ["Los Combinasionas"] = "15,000,000"
-}
+--🌐 Webhooks
+local webhookA = "https://discord.com/api/webhooks/1398949589792587897/..."
+local webhookB = "https://discord.com/api/webhooks/1399229152649019452/..."
+local webhookC = "https://discord.com/api/webhooks/1402409276856860672/..."
 
---==🌐 Webhooks==--
-local webhookA = "https://discord.com/api/webhooks/1398949589792587897/bjhmpxp-gy5zzi_S5gxaJTT4pT0RRlSF3jdI4CuhvoP8y-efC5SoIKRiopMVpDdKZL2X"
-local webhookB = "https://discord.com/api/webhooks/1399229152649019452/DMtjxmpnDT0LG0NFxhPNil0NdgAEtpco_DBbKkLd2FOx7_z2CnANyooo-pV3kJEUKBnH"
+--🔧 Servicios
+local Players, HttpService, TeleportService = game:GetService("Players"), game:GetService("HttpService"), game:GetService("TeleportService")
+local LocalPlayer, visited = Players.LocalPlayer, {[game.JobId] = true}
+local sent, JobId, stopHop = false, game.JobId, false
 
---==📦 Servicios==--
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local hops, webhookSent = 0, false
-local visited = {[game.JobId] = true}
-local failedServers = {}
-local detectedPets = {}
+--👁️ ESP
+local function addESP(model)
+    if model:FindFirstChild("PetESP") then return end
+    local gui = Instance.new("BillboardGui", model)
+    gui.Name = "PetESP"; gui.Adornee = model; gui.Size = UDim2.new(0, 100, 0, 30); gui.AlwaysOnTop = true
+    gui.StudsOffset = Vector3.new(0, 3, 0)
 
---==📊 UI Contador de Hops==--
-local ui = Instance.new("ScreenGui", game.CoreGui)
-local label = Instance.new("TextLabel", ui)
-label.Size = UDim2.new(0, 200, 0, 30)
-label.Position = UDim2.new(0.8, 0, 0, 20)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.new(1, 1, 1)
-label.Font = Enum.Font.GothamBold
-label.TextScaled = true
-label.Text = "Server Hops: 0"
-
---==🧲 ESP==--
-local function addESP(target)
-    if target:FindFirstChild("PetESP") then return end
-    local esp = Instance.new("BillboardGui", target)
-    esp.Name = "PetESP"
-    esp.Size = UDim2.new(0, 100, 0, 25)
-    esp.AlwaysOnTop = true
-    esp.Adornee = target
-    esp.StudsOffset = Vector3.new(0, 2, 0)
-
-    local text = Instance.new("TextLabel", esp)
-    text.Size = UDim2.new(1, 0, 1, 0)
-    text.Text = "🎯 TARGET"
-    text.BackgroundTransparency = 1
-    text.TextColor3 = Color3.fromRGB(255, 80, 80)
-    text.TextStrokeTransparency = 0.3
-    text.Font = Enum.Font.GothamBold
-    text.TextScaled = true
+    local text = Instance.new("TextLabel", gui)
+    text.Size = UDim2.new(1, 0, 1, 0); text.BackgroundTransparency = 1; text.Text = "🎯 Target Pet"
+    text.TextColor3 = Color3.fromRGB(255, 0, 0); text.TextStrokeTransparency = 0.5
+    text.Font = Enum.Font.SourceSansBold; text.TextScaled = true
 end
 
---==🔍 Detección==--
-local function detectPets()
-    local foundA, foundB = {}, {}
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
-            local lowerName = obj.Name:lower()
-            for _, pet in ipairs(getgenv().WebhookATargets) do
-                if lowerName:find(pet:lower()) then
-                    addESP(obj)
-                    table.insert(foundA, obj.Name)
-                end
-            end
-            for _, pet in ipairs(getgenv().WebhookBTargets) do
-                if lowerName:find(pet:lower()) then
-                    addESP(obj)
-                    table.insert(foundB, obj.Name)
-                end
-            end
-        end
-    end
-    return foundA, foundB
-end
-
---==📤 Enviar Webhook==--
+--📩 Webhook
 local function sendWebhook(pets, jobId, url)
-    local fields = {}
-    for _, petName in ipairs(pets) do
-        local brainrot = petBrainrot[petName] or "Unknown"
-        table.insert(fields, {
-            name = "🎯 Pet: "..petName,
-            value = "🧠 Brainrot: "..brainrot,
-            inline = true
-        })
-    end
+    if sent then return end
+    sent = true
 
-    table.insert(fields, {
-        name = "📌 Job ID",
-        value = "```lua\n"..jobId.."\n```",
-        inline = false
-    })
+    local counts, formatted = {}, {}
+    for _, p in ipairs(pets) do counts[p] = (counts[p] or 0) + 1 end
+    for pet, c in pairs(counts) do table.insert(formatted, c > 1 and pet .. " x" .. c or pet) end
 
-        table.insert(fields, {
-        name = "🔗 Join Link",
-        value = "https://testing5312.github.io/joiner/?placeId="..game.PlaceId.."&gameInstanceId="..jobId,
-        inline = false
-    })
-
-    local contentMsg = (url == webhookA) and "@everyone" or ""
-
+    local joinUrl = "https://testing5312.github.io/joiner/?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. jobId
     local data = HttpService:JSONEncode({
-        content = contentMsg,
+        content = url == webhookA and "@everyone" or "",
         embeds = {{
-            title = "Shadow Notifier",
-            description = "Sniped Brainrots",
-            color = 0x800080,
-            fields = fields,
-            footer = {text = os.date("%c")}
+            title = "⭐️ Shadow Notifier",
+            description = "Sniped Brainrot in server",
+            fields = {
+                {name = "User", value = LocalPlayer.Name},
+                {name = "Found Pet(s)", value = table.concat(formatted, "\n")},
+                {name = "Server JobId", value = "`" .. jobId .. "`"},
+                {name = "Teleport Script", value = "game:GetService('TeleportService'):TeleportToPlaceInstance("..game.PlaceId..", '"..jobId.."')"},
+                {name = "🌐 Join Server", value = "[Click here](" .. joinUrl .. ")"},
+                {name = "Time", value = os.date("%Y-%m-%d %H:%M:%S")}
+            },
+            color = 0x800080
         }}
     })
 
     local req = http_request or request or (syn and syn.request)
-    if req then
-        pcall(function()
-            req({
-                Url = url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = data
-            })
-        end)
+    if req then pcall(function()
+        req({Url = url, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = data})
+    end) end
+end
+
+--🔍 Detección rápida
+local function detect(model)
+    if not model:IsA("Model") or model:FindFirstChild("PetESP") then return end
+    local n = string.lower(model.Name)
+
+    for hook, targets in pairs({[webhookA] = getgenv().WebhookATargets, [webhookB] = getgenv().WebhookBTargets, [webhookC] = getgenv().WebhookCTargets}) do
+        for _, target in ipairs(targets) do
+            if string.find(n, string.lower(target)) then
+                addESP(model)
+                sendWebhook({model.Name}, JobId, hook)
+                stopHop = true
+                task.delay(8, function()
+                    TeleportService:Teleport(game.PlaceId)
+                end)
+                return
+            end
+        end
     end
 end
 
---==🚀 Server Hop PRO==--
-local function hop()
-    hops += 1
-    label.Text = "Server Hops: " .. hops
-    local PlaceId, cursor = game.PlaceId, nil
+--🌍 Server Hop con prioridad 3 → 5 → cualquiera
+local function hopServer()
+    local tries, cursor = 0, nil
 
-    for _ = 1, 5 do
-        local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    while not stopHop and tries < 8 do
+        local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
         if cursor then url = url .. "&cursor=" .. cursor end
 
-        local ok, res = pcall(function()
+        local success, result = pcall(function()
             return HttpService:JSONDecode(game:HttpGet(url))
         end)
 
-        if ok and res and res.data then
-            local candidates = {}
-            for _, server in ipairs(res.data) do
-                if server.playing < server.maxPlayers
-                and not visited[server.id]
-                and not failedServers[server.id] then
-                    table.insert(candidates, server.id)
+        if success and result and result.data then
+            local servers3, servers5, serversAny = {}, {}, {}
+
+            for _, s in ipairs(result.data) do
+                if not visited[s.id] and s.id ~= JobId then
+                    if s.playing <= 3 then
+                        table.insert(servers3, s.id)
+                    elseif s.playing <= 5 then
+                        table.insert(servers5, s.id)
+                    elseif s.playing < s.maxPlayers then
+                        table.insert(serversAny, s.id)
+                    end
                 end
             end
 
-            if #candidates > 0 then
-                local chosen = candidates[math.random(1, #candidates)]
-                visited[chosen] = true
-                local success, err = pcall(function()
-                    TeleportService:TeleportToPlaceInstance(PlaceId, chosen)
-                end)
-                if not success then
-                    warn("⚠️ Falló teleport: ", err)
-                    failedServers[chosen] = true
-                    task.wait(0.5)
+            local function teleportTo(choices)
+                if #choices > 0 then
+                    local picked = choices[math.random(1, #choices)]
+                    visited[picked] = true
+                    local succ, err = pcall(function()
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, picked)
+                    end)
+                    if not succ then tries += 1 end
+                    return true
                 end
+                return false
+            end
+
+            if teleportTo(servers3) or teleportTo(servers5) or teleportTo(serversAny) then
                 return
             end
 
-            cursor = res.nextPageCursor
-            task.wait(0.1)
+            cursor = result.nextPageCursor
         else
-            warn("❌ Falló obtener servidores")
-            break
+            tries += 1
         end
+        task.wait(0)
     end
 
-    warn("🔁 Reiniciando búsqueda...")
-    visited = {[game.JobId] = true}
-    failedServers = {}
-    task.wait(1)
-    hop()
+    TeleportService:Teleport(game.PlaceId)
 end
 
---==🔁 Loop principal==--
-local function startLoop()
-    local a, b = detectPets()
-    if #a > 0 and not webhookSent then
-        webhookSent = true
-        sendWebhook(a, game.JobId, webhookA)
-        game.StarterGui:SetCore("SendNotification", {Title = "🎯 Found!", Text = a[1], Duration = 5})
-        task.wait(5)
-        hop()
-    elseif #b > 0 and not webhookSent then
-        webhookSent = true
-        sendWebhook(b, game.JobId, webhookB)
-        game.StarterGui:SetCore("SendNotification", {Title = "🎯 Found!", Text = b[1], Duration = 5})
-        task.wait(5)
-        hop()
-    else
-        task.delay(1, hop)
-    end
-    task.delay(3, startLoop)
-end
-
-startLoop()
-
---==📡 Detección en vivo==--
+--⏱️ Escaneo instantáneo
 workspace.DescendantAdded:Connect(function(obj)
-    task.wait(0.1)
-    if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
-        local name = obj.Name:lower()
-        for _, pet in ipairs(getgenv().WebhookATargets) do
-            if name:find(pet:lower()) and not detectedPets[obj.Name] then
-                detectedPets[obj.Name] = true
-                addESP(obj)
-                sendWebhook({obj.Name}, game.JobId, webhookA)
-                hop()
-            end
-        end
-        for _, pet in ipairs(getgenv().WebhookBTargets) do
-            if name:find(pet:lower()) and not detectedPets[obj.Name] then
-                detectedPets[obj.Name] = true
-                addESP(obj)
-                sendWebhook({obj.Name}, game.JobId, webhookB)
-                hop()
-            end
-        end
-    end
+    task.spawn(function()
+        detect(obj)
+    end)
 end)
 
+--🚀 Auto Hop cada 0.2s si no encuentra target
+task.delay(1, function()
+    while not stopHop do
+        hopServer()
+        task.wait(0.2)
+    end
+end)
