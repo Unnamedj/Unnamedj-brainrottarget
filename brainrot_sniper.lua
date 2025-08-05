@@ -1,6 +1,5 @@
-
 -- 💀 Brainrot Pro Sniper by JOSZMSR (modificado por ChatGPT)
--- Mejorado: sigue haciendo hop y evita pets "IN MACHINE" en azul
+-- Mejorado: sigue haciendo hop
 
 --==🎯 Pets Objetivo==--
 getgenv().WebhookATargets = {
@@ -8,7 +7,8 @@ getgenv().WebhookATargets = {
     "Dragon Cannelloni",
     "La Grande Combinasion",
     "Garama and Madundung",
-    "Nuclearo Dinossauro"
+    "Nuclearo Dinossauro",
+    "Los Combinasionas"
 }
 
 getgenv().WebhookBTargets = {
@@ -22,17 +22,18 @@ getgenv().WebhookBTargets = {
 
 --==📊 Brainrot exacto por Pet==--
 local petBrainrot = {
-    ["Chicleteira Bicicleteira"] = "21,000,000",
+    ["Chicleteira Bicicleteira"] = "3,500,000",
     ["Dragon Cannelloni"] = "15,400,000",
-    ["La Grande Combinasion"] = "18,700,000",
-    ["Garama and Madundung"] = "10,300,000",
-    ["Nuclearo Dinossauro"] = "25,100,000",
-    ["Los Tralaleritos"] = "12,500,000",
-    ["Graipuss Medussi"] = "8,200,000",
-    ["Sammyni Spyderini"] = "14,600,000",
-    ["Torrtuginni Dragonfrutini"] = "9,450,000",
-    ["Pot Hotspot"] = "7,320,000",
-    ["Las Tralaleritas"] = "11,200,000"
+    ["La Grande Combinasion"] = "10,000,000",
+    ["Garama and Madundung"] = "50,000,000",
+    ["Nuclearo Dinossauro"] = "15,000,000",
+    ["Los Tralaleritos"] = "500,000",
+    ["Graipuss Medussi"] = "1,000,000",
+    ["Sammyni Spyderini"] = "350,000",
+    ["Torrtuginni Dragonfrutini"] = "400,000",
+    ["Pot Hotspot"] = "2,500,000",
+    ["Las Tralaleritas"] = "650,000",
+    ["Los Combinasionas"] = "15,000,000"
 }
 
 --==🌐 Webhooks==--
@@ -80,24 +81,11 @@ local function addESP(target)
     text.TextScaled = true
 end
 
---==❌ Verifica si el pet está en máquina==--
-local function isInMachine(petModel)
-    for _, v in ipairs(petModel:GetDescendants()) do
-        if v:IsA("TextLabel") and v.Text:lower():find("in machine") then
-            local color = v.TextColor3
-            if color:ToHex() == "#3ac7f3" or color == Color3.fromRGB(58, 199, 243) then
-                return true
-            end
-        end
-    end
-    return false
-end
-
 --==🔍 Detección==--
 local function detectPets()
     local foundA, foundB = {}, {}
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and not obj:FindFirstChild("PetESP") and not isInMachine(obj) then
+        if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
             local lowerName = obj.Name:lower()
             for _, pet in ipairs(getgenv().WebhookATargets) do
                 if lowerName:find(pet:lower()) then
@@ -134,7 +122,7 @@ local function sendWebhook(pets, jobId, url)
         inline = false
     })
 
-    table.insert(fields, {
+        table.insert(fields, {
         name = "🔗 Join Link",
         value = "https://testing5312.github.io/joiner/?placeId="..game.PlaceId.."&gameInstanceId="..jobId,
         inline = false
@@ -145,9 +133,9 @@ local function sendWebhook(pets, jobId, url)
     local data = HttpService:JSONEncode({
         content = contentMsg,
         embeds = {{
-            title = "Joss Notifier",
-            description = "Mascotas detectadas en servidor.",
-            color = 0x00ff00,
+            title = "Shadow Notifier",
+            description = "Sniped Brainrots",
+            color = 0x800080,
             fields = fields,
             footer = {text = os.date("%c")}
         }}
@@ -245,7 +233,7 @@ startLoop()
 --==📡 Detección en vivo==--
 workspace.DescendantAdded:Connect(function(obj)
     task.wait(0.1)
-    if obj:IsA("Model") and not obj:FindFirstChild("PetESP") and not isInMachine(obj) then
+    if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
         local name = obj.Name:lower()
         for _, pet in ipairs(getgenv().WebhookATargets) do
             if name:find(pet:lower()) and not detectedPets[obj.Name] then
@@ -265,3 +253,4 @@ workspace.DescendantAdded:Connect(function(obj)
         end
     end
 end)
+
