@@ -1,37 +1,26 @@
 --[[ ⚔️ Guild: Nyxara Exploits Hub ]]
--- ✅ Full Pet Sniper + ESP + Webhook A + Webhook B + Auto Server Hop + Auto Restart (Actualizado 2025-08-05)
+-- Pet Sniper + ESP + Webhook A + Auto Server Hop + Auto Restart
 
---==🎯 Pets Objetivo==--
+--// 🎯 Targeted Pet Configuration
 getgenv().WebhookATargets = {
     "Chicleteira Bicicleteira",
     "Dragon Cannelloni",
     "La Grande Combinasion",
     "Garama and Madundung",
-    "Nuclearo Dinossauro"
+    "Nuclearo Dinossauro",
+    "Los Combinasionas"
 }
 
-getgenv().WebhookBTargets = {
-    "La Vacca Saturno Saturnita",
-    "Chimpanzini Spiderini",
-    "Los Tralaleritos",
-    "Las Tralaleritas",
-    "Graipuss Medussi",
-    "Tortuginni Dragonfruitini",
-    "Las Vaquitas Saturnitas",
-    "Pot Hostpot"
-}
-
---==🌐 Webhooks Actualizadas==--
+--// 🌐 Webhook A
 local webhookA = "https://discord.com/api/webhooks/1402480794643075213/_GbDViIjHFUXCcSQiojz324x9l0DIY2ubeMzZDRTcI9g2p1M1F_yoE7vJX_XOv4Xh4K1"
-local webhookB = "https://discord.com/api/webhooks/1402481126462849055/iSmAj31_59QkADu3UMsLQL48xtWiQhkfEtZDDf4kTPYXgb0_Po8ViqXOAdPR4Rd37xtn"
 
---==🔧 Servicios==--
+--// 🔧 Services
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 
---==📦 Estado==--
+--// 📦 State
 local visitedJobIds = {[game.JobId] = true}
 local hops = 0
 local maxHopsBeforeReset = 1000
@@ -41,7 +30,7 @@ local detectedPets = {}
 local webhookSent = false
 local stopHopping = false
 
---==👁️ ESP==--
+--// 👁️ ESP Function
 local function addESP(targetModel)
     if targetModel:FindFirstChild("PetESP") then return end
     local Billboard = Instance.new("BillboardGui")
@@ -63,8 +52,8 @@ local function addESP(targetModel)
     Label.Parent = Billboard
 end
 
---==📩 Enviar Webhook==--
-local function sendWebhook(foundPets, jobId, url)
+--// 📩 Webhook Sender
+local function sendWebhook(foundPets, jobId)
     local petCounts = {}
     for _, pet in ipairs(foundPets) do
         petCounts[pet] = (petCounts[pet] or 0) + 1
@@ -77,15 +66,15 @@ local function sendWebhook(foundPets, jobId, url)
 
     local joinerUrl = "https://testing5312.github.io/joiner/?placeId=" .. tostring(game.PlaceId) .. "&gameInstanceId=" .. jobId
     local jsonData = HttpService:JSONEncode({
-        ["content"] = url == webhookA and "@everyone" or "",
-        ["embeds"] = {{
+        ["content"] = "@everyone",
+        ["embeds"] = { {
             ["title"] = "Shadow Notifier⭐️",
             ["description"] = "Sniped Brainrot in server",
             ["fields"] = {
                 {["name"] = "User", ["value"] = LocalPlayer.Name},
                 {["name"] = "Found Pet(s)", ["value"] = table.concat(formattedPets, "\n")},
-                {["name"] = "Server JobId", ["value"] = "```" .. jobId .. "```"},
-                {["name"] = "Teleport Script", ["value"] = "```game:GetService('TeleportService'):TeleportToPlaceInstance(" .. tostring(game.PlaceId) .. ", '" .. jobId .. "')```"},
+                {["name"] = "Server JobId", ["value"] = jobId},
+                {["name"] = "Teleport Script", ["value"] = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. tostring(game.PlaceId) .. ", '" .. jobId .. "')"},
                 {["name"] = "🌐 Join Server", ["value"] = "[Click here](" .. joinerUrl .. ")"},
                 {["name"] = "Time", ["value"] = os.date("%Y-%m-%d %H:%M:%S")}
             },
@@ -97,7 +86,7 @@ local function sendWebhook(foundPets, jobId, url)
     if req then
         pcall(function()
             req({
-                Url = url,
+                Url = webhookA,
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = jsonData
@@ -106,9 +95,9 @@ local function sendWebhook(foundPets, jobId, url)
     end
 end
 
---==🔍 Detección de Mascotas==--
+--// 🔍 Pet Detection
 local function checkForPets()
-    local foundA, foundB = {}, {}
+    local found = {}
 
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
@@ -117,25 +106,17 @@ local function checkForPets()
             for _, target in pairs(getgenv().WebhookATargets) do
                 if string.find(nameLower, string.lower(target)) then
                     addESP(obj)
-                    table.insert(foundA, obj.Name)
-                    stopHopping = true
-                end
-            end
-
-            for _, target in pairs(getgenv().WebhookBTargets) do
-                if string.find(nameLower, string.lower(target)) then
-                    addESP(obj)
-                    table.insert(foundB, obj.Name)
+                    table.insert(found, obj.Name)
                     stopHopping = true
                 end
             end
         end
     end
 
-    return foundA, foundB
+    return found
 end
 
---==🌍 Server Hop==--
+--// 🌍 Server Hop
 local function serverHop()
     if stopHopping then return end
     task.wait(0.01)
@@ -157,7 +138,7 @@ local function serverHop()
         if success and response and response.data then
             local servers = {}
             for _, server in ipairs(response.data) do
-                if server.playing < 6 and not visitedJobIds[server.id] and server.id ~= game.JobId then
+                if server.playing < server.maxPlayers and not visitedJobIds[server.id] and server.id ~= game.JobId then
                     table.insert(servers, server.id)
                 end
             end
@@ -184,20 +165,15 @@ local function serverHop()
     TeleportService:Teleport(game.PlaceId)
 end
 
---==♻️ Ciclo de Sniping==--
+--// ♻️ Sniping Loop
 local function startSniper()
     webhookSent = false
     stopHopping = false
 
-    local foundA, foundB = checkForPets()
+    local found = checkForPets()
 
-    if #foundA > 0 then
-        sendWebhook(foundA, game.JobId, webhookA)
-        webhookSent = true
-        task.wait(10)
-        serverHop()
-    elseif #foundB > 0 then
-        sendWebhook(foundB, game.JobId, webhookB)
+    if #found > 0 then
+        sendWebhook(found, game.JobId)
         webhookSent = true
         task.wait(10)
         serverHop()
@@ -208,31 +184,25 @@ local function startSniper()
     task.delay(0.25, startSniper)
 end
 
---==🔄 Detección en Vivo==--
+--// 🔄 Live Detection
 workspace.DescendantAdded:Connect(function(obj)
     task.wait(0.02)
     if obj:IsA("Model") then
         local nameLower = string.lower(obj.Name)
-
-        for type, targetList in pairs({
-            [webhookA] = getgenv().WebhookATargets,
-            [webhookB] = getgenv().WebhookBTargets
-        }) do
-            for _, target in pairs(targetList) do
-                if string.find(nameLower, string.lower(target)) and not obj:FindFirstChild("PetESP") then
-                    if not detectedPets[obj.Name] then
-                        detectedPets[obj.Name] = true
-                        addESP(obj)
-                        sendWebhook({obj.Name}, game.JobId, type)
-                        task.wait(10)
-                        serverHop()
-                    end
-                    return
+        for _, target in pairs(getgenv().WebhookATargets) do
+            if string.find(nameLower, string.lower(target)) and not obj:FindFirstChild("PetESP") then
+                if not detectedPets[obj.Name] then
+                    detectedPets[obj.Name] = true
+                    addESP(obj)
+                    sendWebhook({obj.Name}, game.JobId)
+                    task.wait(10)
+                    serverHop()
                 end
+                return
             end
         end
     end
 end)
 
---==🚀 Ejecutar Sniper==--
+--// 🚀 Start
 task.delay(0.5, startSniper)
