@@ -8,7 +8,8 @@ getgenv().WebhookATargets = {
     "La Grande Combinasion",
     "Garama and Madundung",
     "Nuclearo Dinossauro",
-    "Los Combinasionas"
+    "Los Combinasionas",
+    "Karkerkar Kurkur"
 }
 
 getgenv().WebhookBTargets = {
