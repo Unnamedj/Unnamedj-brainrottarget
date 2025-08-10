@@ -1,5 +1,5 @@
 --[[ ⚔️ Guild: Nyxara Exploits Hub ]]
--- Pet Sniper + ESP + Webhook A + Auto Server Hop + Auto Restart
+-- Full Pet Sniper + ESP + Webhook A + Webhook B + Auto Server Hop + Auto Restart
 
 --// 🎯 Targeted Pet Configuration
 getgenv().WebhookATargets = {
@@ -11,8 +11,20 @@ getgenv().WebhookATargets = {
     "Los Combinasionas"
 }
 
---// 🌐 Webhook A
-local webhookA = "https://discord.com/api/webhooks/1402480794643075213/_GbDViIjHFUXCcSQiojz324x9l0DIY2ubeMzZDRTcI9g2p1M1F_yoE7vJX_XOv4Xh4K1"
+getgenv().WebhookBTargets = {
+    "La Vacca Saturno Saturnita",
+    "Chimpanzini Spiderini",
+    "Los Tralaleritos",
+    "Las Tralaleritas",
+    "Graipuss Medussi",
+    "Tortuginni Dragonfruitini",
+    "Las Vaquitas Saturnitas",
+    "Pot Hostpot"
+}
+
+--// 🌐 Webhooks
+local webhookA = "https://discord.com/api/webhooks/1398949589792587897/bjhmpxp-gy5zzi_S5gxaJTT4pT0RRlSF3jdI4CuhvoP8y-efC5SoIKRiopMVpDdKZL2X"
+local webhookB = "https://discord.com/api/webhooks/1404225086940250203/VJzWDW_vkq6iid9CyrPfZeUYOHt2u9d12YaOuE_cJ6VieoHMd7kb5N4PdZqvxgz85VuU"
 
 --// 🔧 Services
 local Players = game:GetService("Players")
@@ -53,7 +65,7 @@ local function addESP(targetModel)
 end
 
 --// 📩 Webhook Sender
-local function sendWebhook(foundPets, jobId)
+local function sendWebhook(foundPets, jobId, url)
     local petCounts = {}
     for _, pet in ipairs(foundPets) do
         petCounts[pet] = (petCounts[pet] or 0) + 1
@@ -66,8 +78,8 @@ local function sendWebhook(foundPets, jobId)
 
     local joinerUrl = "https://testing5312.github.io/joiner/?placeId=" .. tostring(game.PlaceId) .. "&gameInstanceId=" .. jobId
     local jsonData = HttpService:JSONEncode({
-        ["content"] = "@everyone",
-        ["embeds"] = { {
+        ["content"] = url == webhookA and "@everyone" or "",
+        ["embeds"] = {{
             ["title"] = "Shadow Notifier⭐️",
             ["description"] = "Sniped Brainrot in server",
             ["fields"] = {
@@ -86,7 +98,7 @@ local function sendWebhook(foundPets, jobId)
     if req then
         pcall(function()
             req({
-                Url = webhookA,
+                Url = url,
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = jsonData
@@ -97,7 +109,7 @@ end
 
 --// 🔍 Pet Detection
 local function checkForPets()
-    local found = {}
+    local foundA, foundB = {}, {}
 
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and not obj:FindFirstChild("PetESP") then
@@ -106,14 +118,22 @@ local function checkForPets()
             for _, target in pairs(getgenv().WebhookATargets) do
                 if string.find(nameLower, string.lower(target)) then
                     addESP(obj)
-                    table.insert(found, obj.Name)
+                    table.insert(foundA, obj.Name)
+                    stopHopping = true
+                end
+            end
+
+            for _, target in pairs(getgenv().WebhookBTargets) do
+                if string.find(nameLower, string.lower(target)) then
+                    addESP(obj)
+                    table.insert(foundB, obj.Name)
                     stopHopping = true
                 end
             end
         end
     end
 
-    return found
+    return foundA, foundB
 end
 
 --// 🌍 Server Hop
@@ -170,10 +190,15 @@ local function startSniper()
     webhookSent = false
     stopHopping = false
 
-    local found = checkForPets()
+    local foundA, foundB = checkForPets()
 
-    if #found > 0 then
-        sendWebhook(found, game.JobId)
+    if #foundA > 0 then
+        sendWebhook(foundA, game.JobId, webhookA)
+        webhookSent = true
+        task.wait(10)
+        serverHop()
+    elseif #foundB > 0 then
+        sendWebhook(foundB, game.JobId, webhookB)
         webhookSent = true
         task.wait(10)
         serverHop()
@@ -189,16 +214,22 @@ workspace.DescendantAdded:Connect(function(obj)
     task.wait(0.02)
     if obj:IsA("Model") then
         local nameLower = string.lower(obj.Name)
-        for _, target in pairs(getgenv().WebhookATargets) do
-            if string.find(nameLower, string.lower(target)) and not obj:FindFirstChild("PetESP") then
-                if not detectedPets[obj.Name] then
-                    detectedPets[obj.Name] = true
-                    addESP(obj)
-                    sendWebhook({obj.Name}, game.JobId)
-                    task.wait(10)
-                    serverHop()
+
+        for type, targetList in pairs({
+            [webhookA] = getgenv().WebhookATargets,
+            [webhookB] = getgenv().WebhookBTargets
+        }) do
+            for _, target in pairs(targetList) do
+                if string.find(nameLower, string.lower(target)) and not obj:FindFirstChild("PetESP") then
+                    if not detectedPets[obj.Name] then
+                        detectedPets[obj.Name] = true
+                        addESP(obj)
+                        sendWebhook({obj.Name}, game.JobId, type)
+                        task.wait(10)
+                        serverHop()
+                    end
+                    return
                 end
-                return
             end
         end
     end
