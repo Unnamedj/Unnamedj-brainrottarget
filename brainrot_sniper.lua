@@ -1,26 +1,31 @@
---// ⚡ Brainrot Notifier con Hop Forzado + Webhooks (10M–29M y 30M+)
+--// ⚡ Brainrot Notifier con Hop Forzado + Webhook 10M+
 local TeleportService = game:GetService("TeleportService")
 local HttpService     = game:GetService("HttpService")
 local Players         = game:GetService("Players")
 local RunService      = game:GetService("RunService")
 
 -- 🔗 Webhooks
-local webhook_30m_plus_shadow =
-    "https://discord.com/api/webhooks/1415127793947115670/4BECWBUu9c6hvlbDyDrl9LmJYMAfT5ZcNTZRVGl9y-Eu3xv_NSObCRMnhdrGkpuKOlrL"
-local webhook_10m_30m_shadow =
-    "https://discord.com/api/webhooks/1415127656923664435/1pciNJ3WMUSzcMP_CjccwhfvfV8Y5ZEhT_ISvrlxSrgZRKKRsuWUHtwWuW69CrTsPUVG"
+local webhook_10m_plus_shadow =
+    "https://discord.com/api/webhooks/1416408619456663737/Bmn56Ugb2KjYRQLHr1O1BFzDfAhQZURCOohD51_0tG0fp5adYi8DbxbZ6AQRqU3_DKkj"
+local webhook_1m_10m_shadow = ""
+local webhook_fallback_shadow = ""
 
 -- 🎮 Configuración
 local placeId = 109983668079237
-local MIN_MONEY_THRESHOLD = 10000000 -- 10M es el mínimo que nos importa
+local MIN_MONEY_THRESHOLD = 100000
+local MONEY_RANGES = {
+    LOW = 1000000,
+    HIGH = 10000000,
+}
 local timeout = 5
 local visitedServers = {}
 local busy = false
 local lastJob = nil
 local notified = {}
+local start = tick()
 
 -- =========================================================
--- 🌀 Hop Forzado
+-- 🌀 Hop Forzado Aleatorio + Seguro
 -- =========================================================
 local function hopServer()
     while true do
@@ -33,57 +38,57 @@ local function hopServer()
         end)
 
         if suc and res and res.data then
-            table.sort(res.data, function(a, b)
-                return a.playing < b.playing
-            end)
-
+            local goodServers = {}
             for _, s in pairs(res.data) do
                 if s.id ~= game.JobId
                     and not visitedServers[s.id]
                     and not s.PrivateServerId
                     and s.playing < s.maxPlayers
                 then
-                    visitedServers[s.id] = true
-                    print("[HOP] Teleportando a server:", s.id, "| Players:", s.playing, "/", s.maxPlayers)
-                    TeleportService:TeleportToPlaceInstance(placeId, s.id, Players.LocalPlayer)
-                    return
+                    table.insert(goodServers, s)
                 end
+            end
+
+            if #goodServers > 0 then
+                local target = goodServers[math.random(1, #goodServers)]
+                visitedServers[target.id] = true
+                print("[HOP] Teleportando a:", target.id, "| Players:", target.playing, "/", target.maxPlayers)
+                TeleportService:TeleportToPlaceInstance(placeId, target.id, Players.LocalPlayer)
+                return
             end
         else
             warn("[HOP] Error en API, reintentando...")
+            task.wait(5)
         end
 
-        task.wait(2) -- espera antes de volver a intentar
+        task.wait(2)
     end
 end
 
 -- =========================================================
--- 🔗 Webhooks según dinero
+-- 🔗 Webhook selector
 -- =========================================================
 function getWebhookForMoney(moneyNum)
-    if moneyNum >= 30000000 then
-        print("[SCAN] Detectado Brainrot de " .. moneyNum .. " → Enviado a Webhook 30M+")
-        return { webhook_30m_plus_shadow }
-    elseif moneyNum >= 10000000 then
-        print("[SCAN] Detectado Brainrot de " .. moneyNum .. " → Enviado a Webhook 10M–29M")
-        return { webhook_10m_30m_shadow }
+    if moneyNum >= MONEY_RANGES.HIGH then
+        return { webhook_10m_plus_shadow }
+    elseif moneyNum >= MONEY_RANGES.LOW then
+        return { webhook_1m_10m_shadow }
     else
-        print("[SCAN] Detectado Brainrot de " .. moneyNum .. " → NO se envía (menor a 10M)")
-        return {}
+        return { webhook_fallback_shadow }
     end
 end
 
 -- =========================================================
--- 📤 Enviar notificación a Discord
+-- 📤 Notificación a Discord
 -- =========================================================
 function sendNotification(title, desc, color, fields, webhookUrls, shouldPing)
     local embed = {
-        title = "ExclusiveNotifier+", -- 🔹 Cambio aquí
+        title = "👑 ExclusiveNotifier+",
         description = desc,
         color = color or 0xAB8AF2,
         fields = fields,
         timestamp = os.date("!%Y-%m-%dT%H:%M:%S.000Z"),
-        footer = { text = "Made by Joszz" }, -- 🔹 Cambio aquí
+        footer = { text = "Made by Joszz" },
     }
 
     local data = { embeds = { embed } }
@@ -121,9 +126,7 @@ local function parseMoney(text)
 end
 
 function getPlayerCount()
-    local count = #Players:GetPlayers()
-    local max = game.PlaceId and 8 or 8
-    return string.format("%d/%d", count, max)
+    return string.format("%d/%d", #Players:GetPlayers(), 8)
 end
 
 function findBestBrainrot()
@@ -134,7 +137,6 @@ function findBestBrainrot()
 
     local function processBrainrotOverhead(overhead)
         if not overhead then return end
-
         local brainrotData = { name = "Unknown", moneyPerSec = "$0/s", value = "$0", playerCount = playerCount }
         for _, label in pairs(overhead:GetChildren()) do
             if label:IsA("TextLabel") then
@@ -148,7 +150,6 @@ function findBestBrainrot()
                 end
             end
         end
-
         local numericValue = parseMoney(brainrotData.moneyPerSec)
         if numericValue >= MIN_MONEY_THRESHOLD and numericValue > bestValue then
             bestValue = numericValue
@@ -182,23 +183,23 @@ function findBestBrainrot()
 end
 
 -- =========================================================
--- 📢 Notificación principal
+-- 📢 Notificación principal con hop automático tras webhook
 -- =========================================================
 function notifyBrainrot()
     if busy then return end
     busy = true
 
-    local success, bestBrainrot = pcall(findBestBrainrot)
-
-    if not success then
+    local ok, bestBrainrot = pcall(findBestBrainrot)
+    if not ok then
         busy = false
         return
     end
 
     if bestBrainrot then
+        start = tick() -- reset timeout
         local players = getPlayerCount()
         local jobId = game.JobId or "Unknown"
-        local brainrotKey = jobId .. "_" .. bestBrainrot.name .. "_" .. bestBrainrot.moneyPerSec
+        local brainrotKey = jobId .. "_" .. bestBrainrot.name
 
         if not notified[brainrotKey] then
             notified[brainrotKey] = true
@@ -206,16 +207,21 @@ function notifyBrainrot()
 
             local targetWebhooks = getWebhookForMoney(bestBrainrot.numericMPS)
             if #targetWebhooks > 0 then
-                local shouldPing = bestBrainrot.numericMPS >= 30000000
+                local shouldPing = bestBrainrot.numericMPS >= MONEY_RANGES.HIGH
                 local fields = {
                     { name = "🏷️ Name", value = bestBrainrot.name, inline = true },
                     { name = "💰 Money per sec", value = bestBrainrot.moneyPerSec, inline = true },
+                    { name = "💎 Value", value = bestBrainrot.value, inline = true },
                     { name = "👥 Players", value = players, inline = true },
                     { name = "🔗 Join Link", value = "[Click to Join](https://testing5312.github.io/joiner/?placeId=" .. placeId .. "&gameInstanceId=" .. jobId .. ")", inline = false },
                     { name = "Job ID", value = "```" .. jobId .. "```", inline = false },
                 }
+                sendNotification("", fields, targetWebhooks, 0xAB8AF2, shouldPing)
 
-                sendNotification("ExclusiveNotifier+", "", 0xAB8AF2, fields, targetWebhooks, shouldPing)
+                -- 🚀 Hop forzado después de mandar webhook
+                task.delay(2, function()
+                    hopServer()
+                end)
             end
         end
     end
@@ -229,15 +235,17 @@ end
 function retryLoop()
     while true do
         task.wait(0.1)
-        local ok = pcall(notifyBrainrot)
-        if not ok then task.wait(0.1) end
+        local ok, err = pcall(notifyBrainrot)
+        if not ok then
+            warn("[Notify Error]:", err)
+            task.wait(0.1)
+        end
     end
 end
 
 spawn(retryLoop)
 
--- Timeout para forzar hop si no hay resultados
-local start = tick()
+-- Timeout para forzar hop si no encuentra nada
 local timeoutConn
 timeoutConn = RunService.Heartbeat:Connect(function()
     if tick() - start > timeout then
